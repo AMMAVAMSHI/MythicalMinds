@@ -40,7 +40,7 @@ Pages created to showcase **Ramayana, Mahabharata, Hanuman, and Bhagavatam video
 
 ```
 MythicalMinds/
-│── DEMO.HTML                  # Landing/Demo page
+│── index.html                 # Landing/Demo page
 │── Music.html                 # Devotional music player
 │── Music page.html            # Alternate music layout
 │── game.html                  # Game landing page
