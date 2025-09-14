@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Multi Quiz Page with Scores</title>
+<style>
+  /* Restored previous styles */
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    background: #1b1b1b;
+    color: #ddd;
+    display: flex;
+    height: 100vh;
+  }
+  #quiz-list {
+    width: 300px;
+    background: #282828;
+    padding: 20px;
+    box-sizing: border-box;
+    border-right: 2px solid #444;
+    overflow-y: auto;
+  }
+  .quiz-box {
+    background: #333;
+    margin-bottom: 15px;
+    padding: 15px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    position: relative;
+    transition: background-color 0.3s;
+  }
+  .quiz-box:hover {
+    background: #444;
+  }
+  .quiz-box.active {
+    background: #4caf50;
+    color: #fff;
+  }
+  .quiz-title {
+    font-size: 18px;
+    font-weight: 600;
+    display: inline-block;
+  }
+  .quiz-score {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: #222;
+    color: #4caf50;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-weight: bold;
+    font-size: 14px;
+    user-select: none;
+  }
+  .quiz-box.disabled {
+    background: #555 !important;
+    cursor: default;
+    color: #999 !important;
+  }
+  .quiz-box.disabled:hover {
+    background: #555 !important;
+  }
+
+  #quiz-container-wrapper {
+    flex-grow: 1;
+    background: #121212;
+    display: flex;
+    flex-direction: column;
+    padding: 30px;
+    box-sizing: border-box;
+  }
+
+  #quiz-container {
+    background: #222;
+    border-radius: 12px;
+    padding: 30px;
+    flex-grow: 1;
+    box-sizing: border-box;
+    max-width: 700px;
+    margin: 0 auto;
+    color: #eee;
+  }
+  .question {
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 25px;
+  }
+  .options {
+    display: flex;
+    flex-direction: column;
+  }
+  .option {
+    margin-bottom: 16px;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 10px 15px;
+    border-radius: 8px;
+    background: #333;
+    transition: background-color 0.3s;
+    user-select: none;
+  }
+  .option:hover {
+    background: #444;
+  }
+  input[type="radio"] {
+    margin-right: 15px;
+    cursor: pointer;
+  }
+
+  #buttons {
+    margin-top: 30px;
+    display: flex;
+    justify-content: space-between;
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  button {
+    background: #4caf50;
+    border: none;
+    color: white;
+    font-size: 18px;
+    padding: 12px 28px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  button:disabled {
+    background: #666;
+    cursor: not-allowed;
+  }
+  button:hover:not(:disabled) {
+    background: #45a047;
+  }
+</style>
+</head>
+<body>
+
+<div id="quiz-list">
+  <div class="quiz-box" data-index="0">
+    <span class="quiz-title">Quiz 1</span>
+    <span class="quiz-score" id="score-0">-</span>
+  </div>
+  <div class="quiz-box" data-index="1">
+    <span class="quiz-title">Quiz 2</span>
+    <span class="quiz-score" id="score-1">-</span>
+  </div>
+  <div class="quiz-box" data-index="2">
+    <span class="quiz-title">Quiz 3</span>
+    <span class="quiz-score" id="score-2">-</span>
+  </div>
+  <div class="quiz-box" data-index="3">
+    <span class="quiz-title">Quiz 4</span>
+    <span class="quiz-score" id="score-3">-</span>
+  </div>
+  <div class="quiz-box disabled" title="Coming Soon">
+    <span class="quiz-title">Quiz 5 (Coming Soon)</span>
+  </div>
+</div>
+
+<div id="quiz-container-wrapper" style="display:none;">
+  <div id="quiz-container">
+    <!-- Questions will appear here -->
+  </div>
+  <div id="buttons">
+    <button id="prev-btn" disabled>Previous</button>
+    <button id="next-btn" disabled>Next</button>
+    <button id="exit-btn" style="display:none;">Exit</button>
+  </div>
+</div>
+
+<script>
+  // Sample quizzes with 10 questions each (simple placeholders)
+  const allQuizzes = [
+    [
+      {question: "Q1: What is 2+2?", options: ["3", "4", "5", "6"], answer: "4"},
+      {question: "Q2: Capital of France?", options: ["Paris", "London", "Berlin", "Madrid"], answer: "Paris"},
+      {question: "Q3: Largest planet?", options: ["Earth", "Jupiter", "Mars", "Saturn"], answer: "Jupiter"},
+      {question: "Q4: Color of sky?", options: ["Green", "Blue", "Red", "Yellow"], answer: "Blue"},
+      {question: "Q5: What is 5*6?", options: ["30", "20", "35", "25"], answer: "30"},
+      {question: "Q6: Currency of USA?", options: ["Euro", "Dollar", "Rupee", "Yen"], answer: "Dollar"},
+      {question: "Q7: Fastest land animal?", options: ["Lion", "Tiger", "Cheetah", "Leopard"], answer: "Cheetah"},
+      {question: "Q8: H2O is?", options: ["Oxygen", "Hydrogen", "Water", "Helium"], answer: "Water"},
+      {question: "Q9: Author of Hamlet?", options: ["Shakespeare", "Tolkien", "Dickens", "Rowling"], answer: "Shakespeare"},
+      {question: "Q10: Sun rises in?", options: ["West", "East", "North", "South"], answer: "East"},
+    ],
+    [
+      {question: "Q1: 5 + 7?", options: ["11", "12", "13", "10"], answer: "12"},
+      {question: "Q2: Capital of India?", options: ["Mumbai", "Delhi", "Kolkata", "Chennai"], answer: "Delhi"},
+      {question: "Q3: Boiling point of water?", options: ["90°C", "100°C", "110°C", "120°C"], answer: "100°C"},
+      {question: "Q4: Light speed approx?", options: ["300,000 km/s", "150,000 km/s", "1,000 km/s", "10,000 km/s"], answer: "300,000 km/s"},
+      {question: "Q5: Largest ocean?", options: ["Atlantic", "Indian", "Pacific", "Arctic"], answer: "Pacific"},
+      {question: "Q6: Square root of 81?", options: ["7", "8", "9", "10"], answer: "9"},
+      {question: "Q7: Chemical symbol for Gold?", options: ["Au", "Ag", "Fe", "Pb"], answer: "Au"},
+      {question: "Q8: Earth is?", options: ["Flat", "Round", "Square", "Triangle"], answer: "Round"},
+      {question: "Q9: Currency of Japan?", options: ["Yen", "Dollar", "Euro", "Rupee"], answer: "Yen"},
+      {question: "Q10: Fastest bird?", options: ["Eagle", "Falcon", "Sparrow", "Owl"], answer: "Falcon"},
+    ],
+    [
+      {question: "Q1: 3 * 3?", options: ["6", "7", "8", "9"], answer: "9"},
+      {question: "Q2: Capital of USA?", options: ["New York", "Washington D.C.", "Los Angeles", "Chicago"], answer: "Washington D.C."},
+      {question: "Q3: Light year?", options: ["Distance", "Time", "Speed", "Energy"], answer: "Distance"},
+      {question: "Q4: Atomic number of Hydrogen?", options: ["1", "2", "3", "4"], answer: "1"},
+      {question: "Q5: Human heart has how many chambers?", options: ["2", "3", "4", "5"], answer: "4"},
+      {question: "Q6: Primary colors?", options: ["Red, Blue, Yellow", "Green, Blue, Red", "Black, White, Red", "Red, Yellow, Black"], answer: "Red, Blue, Yellow"},
+      {question: "Q7: Who invented telephone?", options: ["Bell", "Edison", "Tesla", "Newton"], answer: "Bell"},
+      {question: "Q8: Smallest continent?", options: ["Asia", "Antarctica", "Australia", "Europe"], answer: "Australia"},
+      {question: "Q9: Tallest mountain?", options: ["K2", "Everest", "Kangchenjunga", "Lhotse"], answer: "Everest"},
+      {question: "Q10: Water formula?", options: ["H2O", "CO2", "O2", "NaCl"], answer: "H2O"},
+    ],
+    [
+      {question: "Q1: Sun is a?", options: ["Planet", "Star", "Moon", "Asteroid"], answer: "Star"},
+      {question: "Q2: Moon revolves around?", options: ["Sun", "Earth", "Mars", "Venus"], answer: "Earth"},
+      {question: "Q3: Number of planets?", options: ["7", "8", "9", "10"], answer: "8"},
+      {question: "Q4: First man on moon?", options: ["Neil Armstrong", "Buzz Aldrin", "Yuri Gagarin", "Michael Collins"], answer: "Neil Armstrong"},
+      {question: "Q5: Light travels in?", options: ["Air", "Vacuum", "Water", "Glass"], answer: "Vacuum"},
+      {question: "Q6: Boiling point of alcohol?", options: ["78°C", "90°C", "100°C", "110°C"], answer: "78°C"},
+      {question: "Q7: Largest desert?", options: ["Sahara", "Gobi", "Kalahari", "Thar"], answer: "Sahara"},
+      {question: "Q8: Oxygen symbol?", options: ["O", "Ox", "Og", "Oy"], answer: "O"},
+      {question: "Q9: Largest mammal?", options: ["Elephant", "Blue Whale", "Giraffe", "Rhino"], answer: "Blue Whale"},
+      {question: "Q10: Speed of sound?", options: ["343 m/s", "300 m/s", "250 m/s", "400 m/s"], answer: "343 m/s"},
+    ],
+  ];
+
+  let currentQuizIndex = null;
+  let currentQuestionIndex = 0;
+  const userAnswers = allQuizzes.map(q => Array(q.length).fill(null));
+  const scores = Array(allQuizzes.length).fill(null);
+
+  const quizBoxes = document.querySelectorAll('.quiz-box:not(.disabled)');
+  const quizContainerWrapper = document.getElementById('quiz-container-wrapper');
+  const quizContainer = document.getElementById('quiz-container');
+  const prevBtn = document.getElementById('prev-btn');
+  const nextBtn = document.getElementById('next-btn');
+  const exitBtn = document.getElementById('exit-btn');
+
+  // Show score in left panel next to quiz titles
+  function updateScoresDisplay() {
+    scores.forEach((score, index) => {
+      const scoreSpan = document.getElementById(`score-${index}`);
+      if (score === null) {
+        scoreSpan.textContent = '-';
+      } else {
+        scoreSpan.textContent = `${score} / 10`;
+      }
+    });
+  }
+
+  updateScoresDisplay();
+
+  quizBoxes.forEach(box => {
+    box.addEventListener('click', () => {
+      const idx = parseInt(box.dataset.index);
+      if (currentQuizIndex !== idx) {
+        currentQuizIndex = idx;
+        currentQuestionIndex = 0;
+        renderQuestion();
+        updateNavigationButtons();
+        quizContainerWrapper.style.display = 'flex';
+        quizBoxes.forEach(b => b.classList.remove('active'));
+        box.classList.add('active');
+        exitBtn.style.display = 'none';
+        nextBtn.disabled = true;
+        prevBtn.disabled = true;
+      }
+    });
+  });
+
+  function renderQuestion() {
+    const quiz = allQuizzes[currentQuizIndex];
+    const q = quiz[currentQuestionIndex];
+    const userAnswer = userAnswers[currentQuizIndex][currentQuestionIndex];
+
+    let optionsHtml = q.options.map(option => {
+      const checked = option === userAnswer ? 'checked' : '';
+      return `
+        <label class="option">
+          <input type="radio" name="option" value="${option}" ${checked}>
+          ${option}
+        </label>
+      `;
+    }).join('');
+
+    quizContainer.innerHTML = `
+      <div class="question">${currentQuestionIndex + 1}. ${q.question}</div>
+      <div class="options">${optionsHtml}</div>
+    `;
+
+    // Add listeners to options to save answer on click
+    document.querySelectorAll('.option input[type=radio]').forEach(input => {
+      input.addEventListener('change', e => {
+        userAnswers[currentQuizIndex][currentQuestionIndex] = e.target.value;
+        updateNavigationButtons();
+      });
+    });
+  }
+
+  function updateNavigationButtons() {
+    prevBtn.disabled = currentQuestionIndex === 0;
+    const quiz = allQuizzes[currentQuizIndex];
+    nextBtn.textContent = (currentQuestionIndex === quiz.length - 1) ? 'Submit' : 'Next';
+
+    // Disable Next if no option selected on this question (but allow Submit anyway if last question)
+    if (currentQuestionIndex < quiz.length - 1) {
+      nextBtn.disabled = !userAnswers[currentQuizIndex][currentQuestionIndex];
+    } else {
+      nextBtn.disabled = false;
+    }
+  }
+
+  prevBtn.addEventListener('click', () => {
+    if(currentQuestionIndex > 0) {
+      currentQuestionIndex--;
+      renderQuestion();
+      updateNavigationButtons();
+    }
+  });
+
+  nextBtn.addEventListener('click', () => {
+    const quiz = allQuizzes[currentQuizIndex];
+    if(currentQuestionIndex < quiz.length - 1) {
+      currentQuestionIndex++;
+      renderQuestion();
+      updateNavigationButtons();
+    } else {
+      // Submit quiz
+      const score = calculateScore(currentQuizIndex);
+      scores[currentQuizIndex] = score;
+      updateScoresDisplay();
+
+      // After submission disable buttons except exit
+      nextBtn.disabled = true;
+      prevBtn.disabled = true;
+      exitBtn.style.display = 'inline-block';
+
+      // Clear quiz container (no internal score text)
+      quizContainer.innerHTML = `<div style="font-size:22px; text-align:center; color:#4caf50;">Quiz Submitted! 🎉</div>`;
+    }
+  });
+
+  exitBtn.addEventListener('click', () => {
+    // Exit quiz view
+    quizContainerWrapper.style.display = 'none';
+    exitBtn.style.display = 'none';
+    nextBtn.disabled = false;
+    prevBtn.disabled = false;
+    userAnswers[currentQuizIndex] = Array(allQuizzes[currentQuizIndex].length).fill(null);
+    currentQuizIndex = null;
+    currentQuestionIndex = 0;
+    quizBoxes.forEach(b => b.classList.remove('active'));
+  });
+</script>
+
+</body>
+</html>

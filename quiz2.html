@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Ramayanam Quiz</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      background: linear-gradient(to right, #fbd786, #f7797d);
+      font-family: 'Comic Sans MS', cursive, sans-serif;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+    }
+
+    .quiz-box {
+      position: relative;
+      background: #fff;
+      border-radius: 16px;
+      padding: 30px;
+      width: 70%;
+      margin: auto;
+      text-align: center;
+      z-index: 1;
+    }
+
+    .quiz-box::before {
+      content: "";
+      position: absolute;
+      top: -4px; left: -4px; right: -4px; bottom: -4px;
+      z-index: -1;
+      background: linear-gradient(45deg, #f39c12, #e74c3c, #8e44ad, #3498db, #1abc9c, #f39c12);
+      background-size: 400% 400%;
+      animation: rotateBorder 6s linear infinite;
+      border-radius: 20px;
+    }
+
+    @keyframes rotateBorder {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .question {
+      font-size: 1.6em;
+      margin: 20px 0 15px;
+    }
+
+    .options {
+      margin-bottom: 20px;
+    }
+
+    .option {
+      display: block;
+      background-color: #f9f9f9;
+      padding: 14px;
+      margin: 12px auto;
+      border-radius: 10px;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: 0.3s;
+      text-align: left;
+      max-width: 600px;
+    }
+
+    .option:hover {
+      background-color: #ffeaa7;
+      border-color: #fdcb6e;
+    }
+
+    .option input[type="radio"] {
+      display: none;
+    }
+
+    .option.selected {
+      background-color: #81ecec;
+      border-color: #00cec9;
+      font-weight: bold;
+    }
+
+    button {
+      padding: 10px 20px;
+      background-color: #e17055;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 10px;
+    }
+
+    button:hover {
+      background-color: #d35400;
+    }
+
+    .score {
+      font-size: 1.5em;
+      color: #2d3436;
+      margin-bottom: 10px;
+    }
+
+    .correct-answer {
+      color: green;
+      font-weight: bold;
+    }
+
+    .wrong-answer {
+      color: red;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    #chart-container {
+      width: 300px;
+      margin: 20px auto;
+    }
+
+    .compliment {
+      font-size: 1.2em;
+      margin-top: 20px;
+      color: #6c5ce7;
+    }
+  </style>
+</head>
+<body>
+
+<div class="quiz-box">
+  <!-- Welcome Screen -->
+  <div id="welcome-screen">
+    <h1>🧠 Ramayanam Quiz</h1>
+    <button onclick="startQuiz()">Start</button>
+    <button onclick="exitQuiz()">Exit</button>
+  </div>
+
+  <!-- Quiz Content -->
+  <div id="quiz-content" class="hidden">
+    <div id="quiz-container"></div>
+    <div id="navigation">
+      <button onclick="nextQuestion()" id="nextBtn">Next</button>
+      <button onclick="submitQuiz()" id="submitBtn" class="hidden">Submit Quiz</button>
+    </div>
+    <div id="results"></div>
+  </div>
+</div>
+
+<script>
+const quizData = [
+  { question: "1. Who was Lord Rama's wife?", options: ["Draupadi", "Sita", "Radha", "Meera"], answer: "Sita" },
+  { question: "2. What was the name of Lord Rama's father?", options: ["Krishna", "Bhishma", "Dasaratha", "Pandu"], answer: "Dasaratha" },
+  { question: "3. Who was the devotee monkey who helped Rama?", options: ["Vali", "Hanuman", "Sugriva", "Angada"], answer: "Hanuman" },
+  { question: "4. Who kidnapped Sita?", options: ["Kumbhakarna", "Ravana", "Bali", "Surpanakha"], answer: "Ravana" },
+  { question: "5. Which forest did Rama go to during exile?", options: ["Vrindavan", "Dandaka", "Ayodhya", "Himalayas"], answer: "Dandaka" },
+  { question: "6. What was the name of Rama's loyal brother?", options: ["Bharata", "Laxmana", "Shatrughna", "Karna"], answer: "Laxmana" },
+  { question: "7. What bridge did Rama's army build?", options: ["Nala Setu", "Rama Setu", "Lanka Bridge", "Monkey Bridge"], answer: "Rama Setu" },
+  { question: "8. Who helped Rama find Sita in Lanka?", options: ["Ravana", "Vibhishana", "Kumbhakarna", "Meghnath"], answer: "Vibhishana" },
+  { question: "9. What weapon did Rama use to kill Ravana?", options: ["Bow and Arrow", "Sword", "Axe", "Spear"], answer: "Bow and Arrow" },
+  { question: "10. What is the name of Rama's kingdom?", options: ["Hastinapur", "Ayodhya", "Dwarka", "Mithila"], answer: "Ayodhya" }
+];
+
+let currentQuestion = 0;
+let userAnswers = [];
+
+function startQuiz() {
+  document.getElementById("welcome-screen").classList.add("hidden");
+  document.getElementById("quiz-content").classList.remove("hidden");
+  renderQuiz(currentQuestion);
+}
+
+function exitQuiz() {
+  window.location.href = "Demo.html";
+}
+
+function renderQuiz(index) {
+  const container = document.getElementById("quiz-container");
+  const q = quizData[index];
+  container.innerHTML = `
+    <div class="question">${q.question}</div>
+    <div class="options">
+      ${q.options.map(option => `
+        <label class="option">
+          <input type="radio" name="question" value="${option}"> ${option}
+        </label>
+      `).join('')}
+    </div>
+  `;
+
+  document.querySelectorAll('.option').forEach(option => {
+    option.addEventListener('click', () => {
+      document.querySelectorAll('.option').forEach(opt => opt.classList.remove('selected'));
+      option.classList.add('selected');
+      option.querySelector('input').checked = true;
+    });
+  });
+
+  document.getElementById("nextBtn").classList.remove("hidden");
+  document.getElementById("submitBtn").classList.add("hidden");
+
+  if (index === quizData.length - 1) {
+    document.getElementById("nextBtn").classList.add("hidden");
+    document.getElementById("submitBtn").classList.remove("hidden");
+  }
+}
+
+function nextQuestion() {
+  const selected = document.querySelector('input[name="question"]:checked');
+  userAnswers[currentQuestion] = selected ? selected.value : null;
+  currentQuestion++;
+  renderQuiz(currentQuestion);
+}
+
+function getCompliment(score) {
+  if (score === quizData.length) return "🏆 Perfect! You're a Ramayana Rockstar!";
+  if (score >= 8) return "🌟 Great job! You're a Ramayana Hero!";
+  if (score >= 5) return "👍 Good effort! Keep learning!";
+  return "📘 Don't worry, try again and learn more!";
+}
+
+function submitQuiz() {
+  const selected = document.querySelector('input[name="question"]:checked');
+  userAnswers[currentQuestion] = selected ? selected.value : null;
+
+  let score = 0;
+  let analysis = "";
+
+  quizData.forEach((q, i) => {
+    const isCorrect = userAnswers[i] === q.answer;
+    if (isCorrect) score++;
+    analysis += `
+      <div>
+        <strong>Q${i + 1}:</strong> ${q.question}<br/>
+        Your Answer: <span class="${isCorrect ? 'correct-answer' : 'wrong-answer'}">${userAnswers[i] || 'No Answer'}</span><br/>
+        Correct Answer: <span class="correct-answer">${q.answer}</span><br/><br/>
+      </div>
+    `;
+  });
+
+  const compliment = getCompliment(score);
+
+  document.getElementById("quiz-container").innerHTML = "";
+  document.getElementById("navigation").innerHTML = "";
+  document.getElementById("results").innerHTML = `
+    <div class="score">🌟 Final Score: ${score} / ${quizData.length}</div>
+    <div class="compliment">${compliment}</div>
+    <div id="chart-container"><canvas id="scoreChart"></canvas></div>
+    <div class="results">${analysis}</div>
+  `;
+
+  const ctx = document.getElementById('scoreChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'pie',
+    data: {
+      labels: ['Correct', 'Incorrect'],
+      datasets: [{
+        label: 'Quiz Result',
+        data: [score, quizData.length - score],
+        backgroundColor: ['#00b894', '#d63031'],
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true
+    }
+  });
+}
+</script>
+
+</body>
+</html>

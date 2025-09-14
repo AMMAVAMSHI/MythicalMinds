@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ramayanam Quiz - Multi Quiz</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      background: linear-gradient(to right, #fbd786, #f7797d);
+      font-family: 'Comic Sans MS', cursive, sans-serif;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    .quiz-box {
+      position: relative;
+      background: #fff;
+      border-radius: 16px;
+      padding: 30px;
+      width: 70%;
+      max-width: 800px;
+      margin: 20px auto;
+      text-align: center;
+      z-index: 1;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .quiz-box::before {
+      content: "";
+      position: absolute;
+      top: -4px; left: -4px; right: -4px; bottom: -4px;
+      z-index: -1;
+      background: linear-gradient(45deg, #f39c12, #e74c3c, #8e44ad, #3498db, #1abc9c, #f39c12);
+      background-size: 400% 400%;
+      animation: rotateBorder 6s linear infinite;
+      border-radius: 20px;
+    }
+
+    @keyframes rotateBorder {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    h1 {
+      margin-bottom: 25px;
+    }
+
+    /* Quiz Selection Buttons */
+    #quiz-selection button {
+      margin: 10px;
+      padding: 14px 28px;
+      background: #e17055;
+      border: none;
+      border-radius: 12px;
+      font-size: 18px;
+      color: white;
+      cursor: pointer;
+      transition: background-color 0.3s;
+      width: 200px;
+    }
+    #quiz-selection button:hover {
+      background-color: #d35400;
+    }
+
+    .question {
+      font-size: 1.6em;
+      margin: 20px 0 15px;
+    }
+
+    .options {
+      margin-bottom: 20px;
+    }
+
+    .option {
+      display: block;
+      background-color: #f9f9f9;
+      padding: 14px;
+      margin: 12px auto;
+      border-radius: 10px;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: 0.3s;
+      text-align: left;
+      max-width: 600px;
+    }
+
+    .option:hover {
+      background-color: #ffeaa7;
+      border-color: #fdcb6e;
+    }
+
+    .option input[type="radio"] {
+      display: none;
+    }
+
+    .option.selected {
+      background-color: #81ecec;
+      border-color: #00cec9;
+      font-weight: bold;
+    }
+
+    button.nav-btn {
+      padding: 10px 20px;
+      background-color: #e17055;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 10px 5px;
+    }
+
+    button.nav-btn:hover {
+      background-color: #d35400;
+    }
+
+    .score {
+      font-size: 1.5em;
+      color: #2d3436;
+      margin-bottom: 10px;
+    }
+
+    .correct-answer {
+      color: green;
+      font-weight: bold;
+    }
+
+    .wrong-answer {
+      color: red;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    #chart-container {
+      width: 300px;
+      margin: 20px auto;
+    }
+
+    .compliment {
+      font-size: 1.2em;
+      margin-top: 20px;
+      color: #6c5ce7;
+    }
+  </style>
+</head>
+<body>
+
+<div class="quiz-box">
+
+  <!-- Quiz Selection Screen -->
+  <div id="quiz-selection">
+    <h1>🧠 Choose a Quiz to Start</h1>
+    <button onclick="startQuiz(0)">Quiz 1: Ramayanam Basics</button>
+    <button onclick="startQuiz(1)">Quiz 2: Characters of Ramayanam</button>
+    <button onclick="startQuiz(2)">Quiz 3: Events in Ramayanam</button>
+    <button onclick="startQuiz(3)">Quiz 4: Places & Symbols</button>
+    <button onclick="startQuiz(4)">Quiz 5: Advanced Ramayanam</button>
+  </div>
+
+  <!-- Quiz Content -->
+  <div id="quiz-content" class="hidden">
+    <div id="quiz-container"></div>
+    <div id="navigation">
+      <button class="nav-btn" onclick="prevQuestion()" id="prevBtn" class="hidden">Previous</button>
+      <button class="nav-btn" onclick="nextQuestion()" id="nextBtn">Next</button>
+      <button class="nav-btn hidden" onclick="submitQuiz()" id="submitBtn">Submit Quiz</button>
+      <button class="nav-btn" onclick="backToSelection()">Back to Quizzes</button>
+    </div>
+    <div id="results"></div>
+  </div>
+
+</div>
+
+<script>
+const allQuizzes = [
+  // Quiz 1
+  [
+    { question: "1. Who was Lord Rama's wife?", options: ["Draupadi", "Sita", "Radha", "Meera"], answer: "Sita" },
+    { question: "2. What was the name of Lord Rama's father?", options: ["Krishna", "Bhishma", "Dasaratha", "Pandu"], answer: "Dasaratha" },
+    { question: "3. Who was the devotee monkey who helped Rama?", options: ["Vali", "Hanuman", "Sugriva", "Angada"], answer: "Hanuman" },
+    { question: "4. Who kidnapped Sita?", options: ["Kumbhakarna", "Ravana", "Bali", "Surpanakha"], answer: "Ravana" },
+    { question: "5. Which forest did Rama go to during exile?", options: ["Vrindavan", "Dandaka", "Ayodhya", "Himalayas"], answer: "Dandaka" },
+    { question: "6. What was the name of Rama's loyal brother?", options: ["Bharata", "Laxmana", "Shatrughna", "Karna"], answer: "Laxmana" },
+    { question: "7. What bridge did Rama's army build?", options: ["Nala Setu", "Rama Setu", "Lanka Bridge", "Monkey Bridge"], answer: "Rama Setu" },
+    { question: "8. Who helped Rama find Sita in Lanka?", options: ["Ravana", "Vibhishana", "Kumbhakarna", "Meghnath"], answer: "Vibhishana" },
+    { question: "9. What weapon did Rama use to kill Ravana?", options: ["Bow and Arrow", "Sword", "Axe", "Spear"], answer: "Bow and Arrow" },
+    { question: "10. What is the name of Rama's kingdom?", options: ["Hastinapur", "Ayodhya", "Dwarka", "Mithila"], answer: "Ayodhya" }
+  ],
+  // Quiz 2
+  [
+    { question: "1. Who is the mother of Lord Rama?", options: ["Kaikeyi", "Kausalya", "Sumitra", "Sita"], answer: "Kausalya" },
+    { question: "2. Who was the demon king of Lanka?", options: ["Ravana", "Kumbhakarna", "Vibhishana", "Meghnath"], answer: "Ravana" },
+    { question: "3. Who was Rama's younger brother?", options: ["Bharata", "Laxmana", "Shatrughna", "Karna"], answer: "Bharata" },
+    { question: "4. Who is the wife of Lakshmana?", options: ["Urmila", "Mandavi", "Shrutakirti", "Sita"], answer: "Urmila" },
+    { question: "5. Who was the king of monkeys who helped Rama?", options: ["Sugriva", "Vali", "Hanuman", "Angada"], answer: "Sugriva" },
+    { question: "6. Who was the minister of Lanka?", options: ["Vibhishana", "Ravana", "Meghnath", "Kumbhakarna"], answer: "Vibhishana" },
+    { question: "7. Who was the great warrior son of Ravana?", options: ["Meghnath", "Indrajit", "Kumbhakarna", "Vibhishana"], answer: "Meghnath" },
+    { question: "8. Which brother of Rama was known for his strength?", options: ["Shatrughna", "Laxmana", "Bharata", "Karna"], answer: "Shatrughna" },
+    { question: "9. Who accompanied Rama during his exile?", options: ["Bharata", "Shatrughna", "Laxmana", "Karna"], answer: "Laxmana" },
+    { question: "10. Who was the sage who gave Rama his divine bow?", options: ["Vishvamitra", "Valmiki", "Agastya", "Narada"], answer: "Vishvamitra" }
+  ],
+  // Quiz 3
+  [
+    { question: "1. How many years was Rama's exile?", options: ["7", "10", "14", "12"], answer: "14" },
+    { question: "2. Who accompanied Rama and Sita in exile?", options: ["Bharata", "Laxmana", "Shatrughna", "Karna"], answer: "Laxmana" },
+    { question: "3. Who helped Rama build the bridge to Lanka?", options: ["Hanuman", "Sugriva", "Nala and Neela", "Vali"], answer: "Nala and Neela" },
+    { question: "4. Who was the evil sister of Ravana?", options: ["Shurpanakha", "Kausalya", "Kaikeyi", "Mandodari"], answer: "Shurpanakha" },
+    { question: "5. What was the name of the golden deer?", options: ["Maricha", "Ravana", "Meghnath", "Indrajit"], answer: "Maricha" },
+    { question: "6. Who killed the golden deer?", options: ["Rama", "Laxmana", "Bharata", "Hanuman"], answer: "Rama" },
+    { question: "7. Who was the warrior that defeated Kumbhakarna?", options: ["Rama", "Laxmana", "Hanuman", "Sugriva"], answer: "Rama" },
+    { question: "8. Who was the commander of Ravana’s army?", options: ["Meghnath", "Vibhishana", "Kumbhakarna", "Indrajit"], answer: "Meghnath" },
+    { question: "9. Which sage blessed Rama and gave him divine weapons?", options: ["Agastya", "Vishvamitra", "Valmiki", "Narada"], answer: "Vishvamitra" },
+    { question: "10. Who was the ruler of Ayodhya after Rama’s exile?", options: ["Bharata", "Rama", "Shatrughna", "Laxmana"], answer: "Rama" }
+  ],
+  // Quiz 4
+  [
+    { question: "1. What is the name of the bridge built by Rama’s army?", options: ["Rama Setu", "Nala Setu", "Lanka Bridge", "Monkey Bridge"], answer: "Rama Setu" },
+    { question: "2. What is the capital of Lanka?", options: ["Ayodhya", "Lanka", "Hastinapur", "Dandaka"], answer: "Lanka" },
+    { question: "3. Where was Sita kept captive?", options: ["Ashoka Vatika", "Dandaka Forest", "Ayodhya", "Himalayas"], answer: "Ashoka Vatika" },
+    { question: "4. What weapon did Rama use to kill Ravana?", options: ["Bow and Arrow", "Sword", "Axe", "Spear"], answer: "Bow and Arrow" },
+    { question: "5. What is the name of Rama’s bow?", options: ["Kodanda", "Pinaka", "Gandiva", "Sharanga"], answer: "Kodanda" },
+    { question: "6. Where was Rama born?", options: ["Ayodhya", "Mathura", "Dwarka", "Kashi"], answer: "Ayodhya" },
+    { question: "7. Which river flows near Ayodhya?", options: ["Sarayu", "Ganga", "Yamuna", "Godavari"], answer: "Sarayu" },
+    { question: "8. What is the name of the forest where Rama spent exile?", options: ["Dandaka", "Gir Forest", "Vindhya", "Chitrakoot"], answer: "Dandaka" },
+    { question: "9. Who was the demoness who tried to attack Sita?", options: ["Shurpanakha", "Kaikeyi", "Mandodari", "Tataka"], answer: "Shurpanakha" },
+    { question: "10. Which mountain did Hanuman fly over to reach Lanka?", options: ["Himalayas", "Vindhya", "Nilgiri", "Sumeru"], answer: "Himalayas" }
+  ],
+  // Quiz 5
+  [
+    { question: "1. Who was the author of Ramayanam?", options: ["Valmiki", "Vyasa", "Tulsidas", "Kalidasa"], answer: "Valmiki" },
+    { question: "2. What is the meaning of 'Ramayanam'?", options: ["Journey of Rama", "Story of Krishna", "War of Mahabharata", "Birth of Shiva"], answer: "Journey of Rama" },
+    { question: "3. Who was the monkey warrior who flew to fetch Sanjeevani herb?", options: ["Hanuman", "Sugriva", "Angada", "Vali"], answer: "Hanuman" },
+    { question: "4. Which weapon did Indrajit use to fight Rama?", options: ["Nagapasha", "Sudarshana Chakra", "Trishula", "Vajra"], answer: "Nagapasha" },
+    { question: "5. What was the name of Rama’s brother who ruled Ayodhya in his absence?", options: ["Bharata", "Laxmana", "Shatrughna", "Karna"], answer: "Bharata" },
+    { question: "6. Who composed Ramcharitmanas?", options: ["Tulsidas", "Valmiki", "Kalidasa", "Vyasa"], answer: "Tulsidas" },
+    { question: "7. What did Hanuman carry on his journey to Lanka?", options: ["Mountain with herbs", "Sword", "Shield", "Chariot"], answer: "Mountain with herbs" },
+    { question: "8. Which demoness tried to seduce Rama in the forest?", options: ["Shurpanakha", "Tataki", "Mandodari", "Kaikeyi"], answer: "Tataki" },
+    { question: "9. Who was the king of Kishkindha?", options: ["Sugriva", "Vali", "Hanuman", "Ravana"], answer: "Sugriva" },
+    { question: "10. What is the name of Ravana’s wife?", options: ["Mandodari", "Sita", "Kaikeyi", "Kausalya"], answer: "Mandodari" }
+  ]
+];
+
+let currentQuizIndex = null;
+let currentQuestionIndex = 0;
+let userAnswers = [];
+
+const quizSelectionDiv = document.getElementById('quiz-selection');
+const quizContentDiv = document.getElementById('quiz-content');
+const quizContainer = document.getElementById('quiz-container');
+const resultsDiv = document.getElementById('results');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+const submitBtn = document.getElementById('submitBtn');
+
+function startQuiz(quizIndex) {
+  currentQuizIndex = quizIndex;
+  currentQuestionIndex = 0;
+  userAnswers = new Array(allQuizzes[quizIndex].length).fill(null);
+
+  quizSelectionDiv.classList.add('hidden');
+  quizContentDiv.classList.remove('hidden');
+  resultsDiv.innerHTML = '';
+  showQuestion();
+  updateNavigationButtons();
+}
+
+function showQuestion() {
+  const quiz = allQuizzes[currentQuizIndex];
+  const q = quiz[currentQuestionIndex];
+
+  // Build question HTML with options
+  let html = `<div class="question">${q.question}</div><div class="options">`;
+  for (let i = 0; i < q.options.length; i++) {
+    const option = q.options[i];
+    // Mark selected if user already answered
+    const checked = userAnswers[currentQuestionIndex] === option ? 'selected' : '';
+    html += `<label class="option ${checked}" onclick="selectOption('${option}')">
+      <input type="radio" name="option" value="${option}" ${checked ? 'checked' : ''} />
+      ${option}
+    </label>`;
+  }
+  html += '</div>';
+
+  quizContainer.innerHTML = html;
+}
+
+function selectOption(option) {
+  userAnswers[currentQuestionIndex] = option;
+  // Update selection styles
+  const options = quizContainer.querySelectorAll('.option');
+  options.forEach(opt => {
+    if (opt.textContent.trim() === option) {
+      opt.classList.add('selected');
+      opt.querySelector('input').checked = true;
+    } else {
+      opt.classList.remove('selected');
+      opt.querySelector('input').checked = false;
+    }
+  });
+}
+
+function nextQuestion() {
+  if (userAnswers[currentQuestionIndex] === null) {
+    alert("Please select an answer before moving to next question.");
+    return;
+  }
+  if (currentQuestionIndex < allQuizzes[currentQuizIndex].length - 1) {
+    currentQuestionIndex++;
+    showQuestion();
+    updateNavigationButtons();
+  }
+}
+
+function prevQuestion() {
+  if (currentQuestionIndex > 0) {
+    currentQuestionIndex--;
+    showQuestion();
+    updateNavigationButtons();
+  }
+}
+
+function updateNavigationButtons() {
+  prevBtn.style.display = currentQuestionIndex === 0 ? 'none' : 'inline-block';
+  nextBtn.style.display = currentQuestionIndex === allQuizzes[currentQuizIndex].length - 1 ? 'none' : 'inline-block';
+  submitBtn.style.display = currentQuestionIndex === allQuizzes[currentQuizIndex].length - 1 ? 'inline-block' : 'none';
+}
+
+function submitQuiz() {
+  if (userAnswers[currentQuestionIndex] === null) {
+    alert("Please select an answer before submitting the quiz.");
+    return;
+  }
+
+  const quiz = allQuizzes[currentQuizIndex];
+  let score = 0;
+  let reviewHtml = `<h2>Your Score: `;
+  for (let i = 0; i < quiz.length; i++) {
+    if (userAnswers[i] === quiz[i].answer) score++;
+  }
+  reviewHtml += `${score} / ${quiz.length}</h2>`;
+
+  // Compliments based on score
+  let compliment = "";
+  let percent = (score / quiz.length) * 100;
+  if (percent === 100) compliment = "🌟 Outstanding! Perfect Score! 🌟";
+  else if (percent >= 80) compliment = "🎉 Great job! You know Ramayanam well! 🎉";
+  else if (percent >= 50) compliment = "🙂 Good effort! Keep learning! 🙂";
+  else compliment = "😕 Keep trying! Ramayanam is full of wonders! 😕";
+
+  reviewHtml += `<p class="compliment">${compliment}</p>`;
+
+  // Show correct answers
+  reviewHtml += `<h3>Review Answers:</h3><ol style="text-align:left;">`;
+  for (let i = 0; i < quiz.length; i++) {
+    const q = quiz[i];
+    const userAnswer = userAnswers[i];
+    const correct = q.answer;
+    if (userAnswer === correct) {
+      reviewHtml += `<li><b>${q.question}</b><br>✔️ Your answer: <span class="correct-answer">${userAnswer}</span></li>`;
+    } else {
+      reviewHtml += `<li><b>${q.question}</b><br>❌ Your answer: <span class="wrong-answer">${userAnswer || 'No answer'}</span><br>✅ Correct answer: <span class="correct-answer">${correct}</span></li>`;
+    }
+  }
+  reviewHtml += `</ol>`;
+
+  quizContainer.innerHTML = reviewHtml;
+
+  // Hide navigation buttons except Back to Quizzes
+  prevBtn.style.display = 'none';
+  nextBtn.style.display = 'none';
+  submitBtn.style.display = 'none';
+
+  resultsDiv.innerHTML = '';
+
+  // Optional: Add a chart to visualize score
+  addScoreChart(score, quiz.length);
+}
+
+function addScoreChart(score, total) {
+  resultsDiv.innerHTML = `<div id="chart-container"><canvas id="scoreChart"></canvas></div>`;
+
+  const ctx = document.getElementById('scoreChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Correct', 'Wrong'],
+      datasets: [{
+        label: 'Score',
+        data: [score, total - score],
+        backgroundColor: ['#00cec9', '#d63031'],
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'bottom' },
+        tooltip: { enabled: true }
+      }
+    }
+  });
+}
+
+function backToSelection() {
+  currentQuizIndex = null;
+  currentQuestionIndex = 0;
+  userAnswers = [];
+  quizContentDiv.classList.add('hidden');
+  quizSelectionDiv.classList.remove('hidden');
+  quizContainer.innerHTML = '';
+  resultsDiv.innerHTML = '';
+}
+</script>
+
+</body>
+</html>

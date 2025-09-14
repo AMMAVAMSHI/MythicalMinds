@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mythical Minds Puzzle Slider Enhanced</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #eef6f9;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    user-select: none;
+  }
+  h1 {
+    margin-bottom: 10px;
+    color: #333;
+  }
+  #puzzle {
+    width: 450px;
+    height: 450px;
+    display: grid;
+    grid-template-columns: repeat(3, 150px);
+    grid-template-rows: repeat(3, 150px);
+    gap: 3px;
+    border: 3px solid #44c767;
+    border-radius: 8px;
+    margin-bottom: 15px;
+  }
+  .piece {
+    width: 150px;
+    height: 150px;
+    background-image: url('photos/Om.png');
+    background-size: 450px 450px;
+    border-radius: 6px;
+    cursor: pointer;
+    box-sizing: border-box;
+    border: 2px solid transparent;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 24px;
+    font-weight: bold;
+    color: white;
+    text-shadow: 1px 1px 2px black;
+    transition: border-color 0.2s ease;
+  }
+  .piece.empty {
+    background: #eef6f9;
+    cursor: default;
+    border: none;
+  }
+  .piece:hover:not(.empty) {
+    border-color: #3b8a53;
+  }
+  #controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  button {
+    background-color: #44c767;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 25px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 16px;
+    user-select: none;
+    transition: background-color 0.2s ease;
+  }
+  button:hover {
+    background-color: #3b8a53;
+  }
+  #stats {
+    margin-bottom: 15px;
+    font-weight: 600;
+    font-size: 18px;
+    color: #2d8659;
+    min-height: 24px;
+  }
+  #message {
+    font-weight: bold;
+    font-size: 20px;
+    color: #2d8659;
+    min-height: 26px;
+  }
+  /* Make tap areas bigger for mobile */
+  @media (max-width: 500px) {
+    #puzzle {
+      width: 300px;
+      height: 300px;
+      grid-template-columns: repeat(3, 100px);
+      grid-template-rows: repeat(3, 100px);
+    }
+    .piece {
+      width: 100px;
+      height: 100px;
+      background-size: 300px 300px;
+      font-size: 18px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<h1>🧩 Mythical Minds Puzzle Slider 🧩</h1>
+
+<div id="stats">
+  Moves: <span id="moves">0</span> | Time: <span id="timer">00:00</span>
+</div>
+
+<div id="puzzle"></div>
+
+<div id="controls">
+  <button id="shuffleBtn">Shuffle 🔀</button>
+  <button id="resetBtn">Reset 🔄</button>
+  <button id="hintBtn">Hint 👀</button>
+</div>
+
+<div id="message"></div>
+
+<!-- Optional sound effects -->
+<audio id="clickSound" src="https://actions.google.com/sounds/v1/ui/click.ogg"></audio>
+<audio id="winSound" src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg"></audio>
+
+<script>
+  const puzzle = document.getElementById('puzzle');
+  const message = document.getElementById('message');
+  const shuffleBtn = document.getElementById('shuffleBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const hintBtn = document.getElementById('hintBtn');
+  const movesDisplay = document.getElementById('moves');
+  const timerDisplay = document.getElementById('timer');
+  const clickSound = document.getElementById('clickSound');
+  const winSound = document.getElementById('winSound');
+
+  let order = [0,1,2,3,4,5,6,7,8];
+  let emptyIndex = 8;
+
+  let moves = 0;
+  let timer = null;
+  let secondsElapsed = 0;
+  let gameStarted = false;
+
+  function createPuzzle() {
+    puzzle.innerHTML = '';
+    for(let i=0; i<9; i++) {
+      const piece = document.createElement('div');
+      piece.classList.add('piece');
+      if(order[i] === 8) {
+        piece.classList.add('empty');
+      } else {
+        const x = (order[i] % 3) * 150;
+        const y = Math.floor(order[i] / 3) * 150;
+        piece.style.backgroundPosition = `-${x}px -${y}px`;
+      }
+      piece.dataset.pos = i;
+      piece.addEventListener('click', () => movePiece(i));
+      puzzle.appendChild(piece);
+    }
+    message.textContent = '';
+  }
+
+  function canMove(pos) {
+    const adjacent = [emptyIndex - 1, emptyIndex + 1, emptyIndex - 3, emptyIndex + 3];
+    if(!adjacent.includes(pos)) return false;
+    // Prevent wrap-around
+    if((pos === emptyIndex -1 && emptyIndex % 3 === 0) ||
+       (pos === emptyIndex +1 && emptyIndex % 3 === 2)) {
+      return false;
+    }
+    return true;
+  }
+
+  function movePiece(pos) {
+    if(canMove(pos)) {
+      [order[pos], order[emptyIndex]] = [order[emptyIndex], order[pos]];
+      emptyIndex = pos;
+      playSound(clickSound);
+      createPuzzle();
+      moves++;
+      movesDisplay.textContent = moves;
+      if(!gameStarted) startTimer();
+      gameStarted = true;
+      if(checkWin()) {
+        message.textContent = '🎉 Congratulations! You solved the puzzle! 🎉';
+        stopTimer();
+        playSound(winSound);
+      }
+    }
+  }
+
+  function checkWin() {
+    for(let i=0; i<order.length; i++) {
+      if(order[i] !== i) return false;
+    }
+    return true;
+  }
+
+  function shuffle() {
+    do {
+      for(let i = order.length - 2; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [order[i], order[j]] = [order[j], order[i]];
+      }
+      emptyIndex = order.indexOf(8);
+    } while(!isSolvable(order));
+    moves = 0;
+    movesDisplay.textContent = moves;
+    secondsElapsed = 0;
+    updateTimerDisplay();
+    createPuzzle();
+    message.textContent = 'Puzzle shuffled! Good luck!';
+    stopTimer();
+    gameStarted = false;
+  }
+
+  function isSolvable(arr) {
+    let inversions = 0;
+    const arrWithoutEmpty = arr.filter(n => n !== 8);
+    for(let i=0; i<arrWithoutEmpty.length; i++) {
+      for(let j=i+1; j<arrWithoutEmpty.length; j++) {
+        if(arrWithoutEmpty[i] > arrWithoutEmpty[j]) inversions++;
+      }
+    }
+    return inversions % 2 === 0;
+  }
+
+  // Timer functions
+  function startTimer() {
+    if(timer) return;
+    timer = setInterval(() => {
+      secondsElapsed++;
+      updateTimerDisplay();
+    }, 1000);
+  }
+
+  function stopTimer() {
+    clearInterval(timer);
+    timer = null;
+  }
+
+  function updateTimerDisplay() {
+    const mins = Math.floor(secondsElapsed / 60).toString().padStart(2, '0');
+    const secs = (secondsElapsed % 60).toString().padStart(2, '0');
+    timerDisplay.textContent = `${mins}:${secs}`;
+  }
+
+  // Reset to current puzzle state
+  function resetPuzzle() {
+    createPuzzle();
+    moves = 0;
+    secondsElapsed = 0;
+    movesDisplay.textContent = moves;
+    updateTimerDisplay();
+    message.textContent = '';
+    stopTimer();
+    gameStarted = false;
+  }
+
+  // Show hint by flashing the solved image briefly
+  function showHint() {
+    const pieces = [...document.querySelectorAll('.piece')];
+    pieces.forEach(piece => {
+      if(!piece.classList.contains('empty')) {
+        const i = parseInt(piece.dataset.pos);
+        const x = (i % 3) * 150;
+        const y = Math.floor(i / 3) * 150;
+        piece.style.backgroundPosition = `-${x}px -${y}px`;
+      }
+    });
+    message.textContent = '👀 Hint shown for 3 seconds';
+    setTimeout(() => {
+      createPuzzle();
+      message.textContent = '';
+    }, 3000);
+  }
+
+  // Play sound safely
+  function playSound(sound) {
+    if(!sound) return;
+    sound.currentTime = 0;
+    sound.play().catch(() => {});
+  }
+
+  shuffleBtn.addEventListener('click', shuffle);
+  resetBtn.addEventListener('click', resetPuzzle);
+  hintBtn.addEventListener('click', showHint);
+
+  // Initialize
+  createPuzzle();
+</script>
+
+</body>
+</html>
